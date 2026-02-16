@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +20,7 @@ import {
   Info,
 } from "lucide-react";
 import { useState } from "react";
+
 
 export function Header() {
   const { user, signOut } = useAuth();
