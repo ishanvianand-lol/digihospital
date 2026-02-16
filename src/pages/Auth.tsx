@@ -223,7 +223,7 @@ export default function Auth() {
               <div style={{ width:48, height:48, borderRadius:14, background:"linear-gradient(135deg,#38bdf8,#0284c7)", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 8px 24px rgba(56,189,248,0.3)" }}>
                 <Activity size={24} style={{ color:"#fff" }} />
               </div>
-              <span style={{ fontSize:22, fontWeight:800, color:"rgba(255,255,255,0.88)", letterSpacing:"-0.02em" }}>Digital Hospital</span>
+              <span style={{ fontSize:22, fontWeight:800, color:"rgba(255,255,255,0.88)", letterSpacing:"-0.02em" }}>TrustHeal</span>
             </div>
 
             <div style={{ display:"inline-flex", alignItems:"center", gap:8, background:"rgba(56,189,248,0.06)", border:"1px solid rgba(56,189,248,0.15)", borderRadius:999, padding:"6px 16px", marginBottom:20 }}>

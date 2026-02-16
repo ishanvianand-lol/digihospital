@@ -42,7 +42,7 @@ export function Header() {
             <Activity className="h-5 w-5 text-white" />
           </div>
           <span className="hidden text-xl font-bold text-foreground sm:inline-block">
-            Digital Hospital
+            TrustHeal
           </span>
         </Link>
 

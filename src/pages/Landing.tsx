@@ -190,7 +190,7 @@ export default function Landing() {
                 Powered by Advanced Technology
               </h2>
               <p style={{ maxWidth:620, margin:"0 auto", fontSize:16, color:"rgba(255,255,255,0.28)", lineHeight:1.65 }}>
-                Digital Hospital combines cutting-edge AI with blockchain-inspired security to revolutionize your healthcare experience.
+                TrustHeal combines cutting-edge AI with blockchain-inspired security to revolutionize your healthcare experience.
               </p>
             </div>
 
@@ -384,7 +384,7 @@ export default function Landing() {
             <div style={{ width:36, height:36, borderRadius:10, background:"linear-gradient(135deg,#38bdf8,#0284c7)", display:"flex", alignItems:"center", justifyContent:"center" }}>
               <Activity size={18} style={{ color:"#fff" }} />
             </div>
-            <span style={{ fontSize:16, fontWeight:700, color:"rgba(255,255,255,0.82)" }}>Digital Hospital</span>
+            <span style={{ fontSize:16, fontWeight:700, color:"rgba(255,255,255,0.82)" }}>TrustHeal</span>
           </div>
 
           <div style={{ display:"flex", alignItems:"center", gap:24, fontSize:13, color:"rgba(255,255,255,0.28)" }}>
@@ -394,7 +394,7 @@ export default function Landing() {
           </div>
 
           <p style={{ fontSize:13, color:"rgba(255,255,255,0.22)" }}>
-            © 2026 Digital Hospital. All rights reserved.
+            © 2026 TrustHeal. All rights reserved.
           </p>
         </div>
       </footer>
