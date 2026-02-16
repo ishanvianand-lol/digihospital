@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import {
@@ -29,23 +29,67 @@ interface AiConsultationProps {
 }
 
 export function AiConsultation({ healthContext }: AiConsultationProps) {
+  const [languagePreference, setLanguagePreference] = useState<"english" | "hinglish" | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
       content:
-        "👋 Namaste! I'm your AI Health Assistant powered by Google Gemini. Main aapki health-related queries mein madad kar sakti hoon.\n\nAap mujhse kuch bhi puch sakte ho:\n• Symptoms ke baare mein\n• Diet aur nutrition advice\n• Exercise recommendations\n• Sleep improvement tips\n• Mental health support\n\nKya main aapki kaise madad kar sakti hoon?",
+        "👋 Hello! / Namaste!\n\nPlease choose your preferred language:\n\n🇬🇧 English - For responses in English\n🇮🇳 Hinglish - Hindi-English mix mein responses\n\nClick below to select:",
       timestamp: new Date(),
     },
   ]);
   const [userMessage, setUserMessage] = useState("");
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto scroll to bottom
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
+
+  const handleLanguageSelect = (language: "english" | "hinglish") => {
+    setLanguagePreference(language);
+    
+    const welcomeMessage = language === "english"
+      ? "Great! I'll respond in English.\n\n🩺 I can help with:\n• Symptoms\n• Diet & nutrition\n• Exercise tips\n• Sleep & mental health\n\nWhat can I help you with?"
+      : "Badhiya! Main Hinglish mein respond karungi.\n\n🩺 Main madad kar sakti hoon:\n• Symptoms\n• Diet aur nutrition\n• Exercise tips\n• Sleep aur mental health\n\nKya madad chahiye?";
+
+    setChatMessages([
+      {
+        role: "assistant",
+        content: welcomeMessage,
+        timestamp: new Date(),
+      },
+    ]);
+  };
 
   const callGeminiApi = async (userQuery: string): Promise<string> => {
     try {
-      // Prepare context for AI
+      // Get API key
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      
+      // Debug logs
+      console.log("=== GEMINI API DEBUG START ===");
+      console.log("1. API Key exists:", !!apiKey);
+      console.log("2. API Key length:", apiKey?.length || 0);
+      console.log("3. User Query:", userQuery);
+
+      if (!apiKey) {
+        console.error("❌ API Key missing!");
+        return "⚠️ **Setup Required!**\n\n" +
+               "API key configure nahi hai. Please follow these steps:\n\n" +
+               "1. Google AI Studio pe jaaein: https://aistudio.google.com/app/apikey\n" +
+               "2. 'Create API Key' button click karein\n" +
+               "3. API key copy karein\n" +
+               "4. Apni project ke root folder mein .env file banaaein\n" +
+               "5. Usme ye add karein: VITE_GEMINI_API_KEY=your_api_key_here\n" +
+               "6. Development server restart karein (npm run dev)";
+      }
+
+      // Prepare health context
       const contextString = healthContext
-        ? `\n\nUser's Health Context:
+        ? `\n\nUser's Health Profile:
 - Recent Symptoms: ${healthContext.recentSymptoms?.map((s) => s.symptoms).join(", ") || "None"}
 - Sleep Score: ${healthContext.sleepScore || "Not available"}/100
 - Health Risk Score: ${healthContext.healthRiskScore || 0}/100
@@ -54,26 +98,27 @@ export function AiConsultation({ healthContext }: AiConsultationProps) {
 - Age: ${healthContext.age || "Not provided"}`
         : "";
 
-      const prompt = `You are a helpful medical AI assistant. You can respond in both English and Hinglish (Hindi-English mix) based on the user's language preference.
+      const systemPrompt = `You are a helpful AI health assistant. Respond in ${languagePreference === "english" ? "English" : "Hinglish (Hindi-English mix)"}.
 
-IMPORTANT GUIDELINES:
-1. Provide helpful, evidence-based health information
-2. Be empathetic and supportive
-3. ALWAYS include a disclaimer that this is NOT a diagnosis
-4. Recommend seeing a doctor for serious concerns
-5. Use simple language that's easy to understand
-6. If user asks in Hinglish, respond in Hinglish too
-7. For emergency symptoms (chest pain, difficulty breathing, severe bleeding), immediately advise calling emergency services
+CRITICAL RULES:
+1. Keep responses SHORT and CRISP (max 3-4 sentences)
+2. Be direct and to-the-point
+3. Use bullet points when listing things
+4. Match user's language: ${languagePreference === "english" ? "Pure English" : "Hinglish (mix Hindi-English naturally)"}
+5. For emergencies, immediately say "Call 108 NOW"
+6. End with ONE line disclaimer only
 
 ${contextString}
 
 User Question: ${userQuery}
 
-Provide a helpful, informative response. Include relevant health tips and recommendations.`;
+Give SHORT, practical answer.`;
 
-      // Call Google Gemini API
+      console.log("4. Making API request...");
+
+      // API Request (Updated model name)
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
         {
           method: "POST",
           headers: {
@@ -84,7 +129,7 @@ Provide a helpful, informative response. Include relevant health tips and recomm
               {
                 parts: [
                   {
-                    text: prompt,
+                    text: systemPrompt,
                   },
                 ],
               },
@@ -117,30 +162,116 @@ Provide a helpful, informative response. Include relevant health tips and recomm
         }
       );
 
+      console.log("5. Response Status:", response.status);
+
+      // Handle different error statuses
       if (!response.ok) {
-        throw new Error("Failed to get response from Gemini");
+        const errorData = await response.json().catch(() => ({}));
+        console.error("❌ API Error Response:", errorData);
+
+        if (response.status === 400) {
+          return "⚠️ **Request Error (400)**\n\n" +
+                 "API request mein kuch issue hai.\n\n" +
+                 "**Possible reasons:**\n" +
+                 "• API key format galat hai\n" +
+                 "• Request payload invalid hai\n\n" +
+                 "**Solution:** Console check karein aur API key verify karein.";
+        } else if (response.status === 403) {
+          return "⚠️ **Access Denied (403)**\n\n" +
+                 "API key invalid ya disabled hai.\n\n" +
+                 "**Solution:**\n" +
+                 "1. Google AI Studio pe jaaein\n" +
+                 "2. Purani key delete karein\n" +
+                 "3. Nayi key generate karein\n" +
+                 "4. .env file mein update karein\n" +
+                 "5. Server restart karein";
+        } else if (response.status === 429) {
+          return "⚠️ **Too Many Requests (429)**\n\n" +
+                 "API quota limit exceed ho gaya hai.\n\n" +
+                 "**Free tier limits:**\n" +
+                 "• 60 requests per minute\n" +
+                 "• 1,500 requests per day\n\n" +
+                 "**Solution:** 1-2 minute wait karein aur phir try karein.";
+        } else if (response.status === 500 || response.status === 503) {
+          return "⚠️ **Server Error (500/503)**\n\n" +
+                 "Google ka server temporarily down hai.\n\n" +
+                 "**Solution:** 2-3 minute wait karein aur retry karein.";
+        }
+
+        throw new Error(`HTTP ${response.status}: ${JSON.stringify(errorData)}`);
       }
 
+      // Parse response
       const data = await response.json();
-      const aiResponse = data.candidates[0].content.parts[0].text;
+      console.log("6. Response received:", !!data);
 
-      // Add disclaimer if not already present
-      if (!aiResponse.includes("Disclaimer") && !aiResponse.includes("disclaimer")) {
-        return (
-          aiResponse +
-          "\n\n⚠️ *Disclaimer: Yeh AI-powered guidance hai, medical diagnosis nahi. Serious health concerns ke liye please qualified doctor se consult karein.*"
-        );
+      // Validate response structure
+      if (!data.candidates || data.candidates.length === 0) {
+        console.error("❌ No candidates in response:", data);
+        
+        // Check if blocked by safety filters
+        if (data.promptFeedback?.blockReason) {
+          return "⚠️ **Content Blocked**\n\n" +
+                 `Response blocked due to: ${data.promptFeedback.blockReason}\n\n` +
+                 "Kripya apna question thoda alag tarike se phrase karein.";
+        }
+
+        return "⚠️ **Empty Response**\n\n" +
+               "AI ne koi response generate nahi kiya.\n\n" +
+               "**Possible reasons:**\n" +
+               "• Safety filters ne block kar diya\n" +
+               "• Question too broad ya vague tha\n\n" +
+               "Please thoda specific question puchein.";
       }
+
+      let aiResponse = data.candidates[0].content.parts[0].text;
+      console.log("7. Response length:", aiResponse.length);
+
+      // Add disclaimer if not present
+      if (!aiResponse.toLowerCase().includes("disclaimer")) {
+        const disclaimerText = languagePreference === "english" 
+          ? "\n\n⚠️ Not medical advice. See a doctor for serious concerns."
+          : "\n\n⚠️ Medical advice nahi. Serious issues ke liye doctor se milein.";
+        aiResponse += disclaimerText;
+      }
+
+      console.log("✅ API call successful!");
+      console.log("=== GEMINI API DEBUG END ===");
 
       return aiResponse;
-    } catch (error) {
-      console.error("Gemini API Error:", error);
-      return "I apologize, but I'm having trouble connecting right now. Please try again in a moment, or consult with your healthcare provider directly for urgent concerns.";
+
+    } catch (error: any) {
+      console.error("=== GEMINI API ERROR ===");
+      console.error("Error Type:", error.name);
+      console.error("Error Message:", error.message);
+      console.error("Full Error:", error);
+      console.error("======================");
+
+      // Network errors
+      if (error.name === "TypeError" && error.message.includes("fetch")) {
+        return "⚠️ **Network Error**\n\n" +
+               "Internet connection mein issue hai.\n\n" +
+               "**Solution:**\n" +
+               "• Internet connection check karein\n" +
+               "• VPN disable karein (agar use kar rahe ho)\n" +
+               "• Firewall settings check karein\n" +
+               "• Different network try karein";
+      }
+
+      // Generic error
+      return "⚠️ **Technical Issue**\n\n" +
+             "Kuch technical problem aa gayi hai.\n\n" +
+             "**Kya karein:**\n" +
+             "1. Console logs check karein (F12 → Console)\n" +
+             "2. API key verify karein\n" +
+             "3. 1-2 minute baad retry karein\n" +
+             "4. Emergency ke liye 108 dial karein\n\n" +
+             `Error: ${error.message}`;
     }
   };
 
   const handleSendMessage = async () => {
-    if (!userMessage.trim() || isAiTyping) return;
+    if (!userMessage.trim() || isAiTyping || !languagePreference) return;
 
     const newUserMessage: ChatMessage = {
       role: "user",
@@ -163,11 +294,12 @@ Provide a helpful, informative response. Include relevant health tips and recomm
 
       setChatMessages((prev) => [...prev, newAiMessage]);
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Message handling error:", error);
       const errorMessage: ChatMessage = {
         role: "assistant",
         content:
-          "Maaf kijiye, mujhe kuch technical issue aa raha hai. Kripya thodi der baad try karein ya emergency ke liye 108 dial karein.",
+          "⚠️ Maaf kijiye, message process nahi ho paya.\n\n" +
+          "Please try again ya emergency ke liye 108 dial karein.",
         timestamp: new Date(),
       };
       setChatMessages((prev) => [...prev, errorMessage]);
@@ -176,7 +308,7 @@ Provide a helpful, informative response. Include relevant health tips and recomm
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -267,17 +399,45 @@ Provide a helpful, informative response. Include relevant health tips and recomm
                 <div className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin text-primary" />
                   <span className="text-sm text-muted-foreground">
-                    AI is thinking...
+                    AI soch rahi hai...
                   </span>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Quick Questions (only show when chat is empty) */}
-          {chatMessages.length === 1 && !isAiTyping && (
+          {/* Language Selection or Quick Questions */}
+          {!languagePreference ? (
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-foreground">Choose your language:</p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => handleLanguageSelect("english")}
+                  className="rounded-xl border-2 border-primary/30 bg-gradient-to-br from-blue-50 to-blue-100 p-4 text-left transition-all hover:border-primary hover:shadow-lg"
+                >
+                  <div className="text-2xl mb-2">🇬🇧</div>
+                  <div className="font-semibold text-foreground">English</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Responses in English
+                  </div>
+                </button>
+                <button
+                  onClick={() => handleLanguageSelect("hinglish")}
+                  className="rounded-xl border-2 border-primary/30 bg-gradient-to-br from-orange-50 to-orange-100 p-4 text-left transition-all hover:border-primary hover:shadow-lg"
+                >
+                  <div className="text-2xl mb-2">🇮🇳</div>
+                  <div className="font-semibold text-foreground">Hinglish</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Hindi-English mix
+                  </div>
+                </button>
+              </div>
+            </div>
+          ) : chatMessages.length === 1 && !isAiTyping ? (
             <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">Quick questions:</p>
+              <p className="text-xs text-muted-foreground">
+                {languagePreference === "english" ? "Quick questions:" : "Quick questions:"}
+              </p>
               <div className="grid grid-cols-1 gap-2">
                 {quickQuestions.map((question, idx) => (
                   <button
@@ -290,7 +450,9 @@ Provide a helpful, informative response. Include relevant health tips and recomm
                 ))}
               </div>
             </div>
-          )}
+          ) : null}
+
+          <div ref={chatEndRef} />
         </div>
 
         {/* Input Area */}
@@ -299,15 +461,21 @@ Provide a helpful, informative response. Include relevant health tips and recomm
             <Textarea
               value={userMessage}
               onChange={(e) => setUserMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Type your health question... (English या Hinglish)"
+              onKeyDown={handleKeyDown}
+              placeholder={
+                !languagePreference
+                  ? "Please select language first..."
+                  : languagePreference === "english"
+                  ? "Type your health question..."
+                  : "Apna health question type karein..."
+              }
               className="input-medical min-h-[60px] resize-none"
               rows={2}
-              disabled={isAiTyping}
+              disabled={isAiTyping || !languagePreference}
             />
             <Button
               onClick={handleSendMessage}
-              disabled={!userMessage.trim() || isAiTyping}
+              disabled={!userMessage.trim() || isAiTyping || !languagePreference}
               className="h-auto bg-gradient-primary text-white"
             >
               {isAiTyping ? (

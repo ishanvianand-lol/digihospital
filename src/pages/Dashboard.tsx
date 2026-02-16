@@ -11,7 +11,7 @@ import { useToast } from "../hooks/use-toast";
 import { supabase } from "../supabase/client";
 import { Header } from "../components/layout/Header";
 import { AiConsultation } from "../components/AIConsultation";
-import { MedicineReminder } from '../components/MedicineReminderWhatsapp';
+// import { MedicineReminder } from '../components/MedicineReminderWhatsapp';
 import {
   analyzeHealth,
   calculateSleepScore,
@@ -427,12 +427,7 @@ export default function Dashboard() {
                 </Button>
               </div>
               {/* Medicine Reminder - Full Width */}
-              <div className="mb-6">
-                <MedicineReminder 
-                  userId={user?.id || ''} 
-                  userPhone={profile?.whatsapp_number}
-                />
-              </div>
+      
               <div className="flex flex-col items-center py-4">
                 <div className="relative flex h-32 w-32 items-center justify-center">
                   <div className="text-center">

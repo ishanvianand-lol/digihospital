@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";  // ✅ useEffect added
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -55,9 +55,36 @@ const initialData: OnboardingData = {
   activityLevel: "moderate",
 };
 
+const STORAGE_KEY = "digihospital_onboarding_data";
+const STORAGE_STEP_KEY = "digihospital_onboarding_step";
+
+const loadFromStorage = (): OnboardingData => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (e) {
+    console.error("Error loading data:", e);
+  }
+  return initialData;
+};
+
+const loadStepFromStorage = (): number => {
+  try {
+    const saved = localStorage.getItem(STORAGE_STEP_KEY);
+    if (saved) {
+      return parseInt(saved, 10);
+    }
+  } catch (e) {
+    console.error("Error loading step:", e);
+  }
+  return 1;
+};
+
 export default function Onboarding() {
-  const [step, setStep] = useState(1);
-  const [data, setData] = useState<OnboardingData>(initialData);
+  const [step, setStep] = useState(loadStepFromStorage());
+  const [data, setData] = useState<OnboardingData>(loadFromStorage());
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const { createProfile, updateProfile, profile } = useProfile();
@@ -65,6 +92,14 @@ export default function Onboarding() {
   const { toast } = useToast();
 
   const totalSteps = 3;
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }, [data]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_STEP_KEY, step.toString());
+  }, [step]);
 
   const handleNext = () => {
     if (step < totalSteps) {
@@ -138,6 +173,9 @@ export default function Onboarding() {
         title: "Profile created!",
         description: "Your health profile has been set up successfully.",
       });
+
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(STORAGE_STEP_KEY);
 
       navigate("/dashboard");
     } catch (error: any) {
