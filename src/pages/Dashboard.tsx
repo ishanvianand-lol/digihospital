@@ -11,7 +11,6 @@ import { useToast } from "../hooks/use-toast";
 import { supabase } from "../supabase/client";
 import { Header } from "../components/layout/Header";
 import { AiConsultation } from "../components/AIConsultation";
-// import { MedicineReminder } from '../components/MedicineReminderWhatsapp';
 import {
   analyzeHealth,
   calculateSleepScore,
