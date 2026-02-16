@@ -16,8 +16,22 @@ const NavLink = forwardRef<HTMLAnchorElement, NavLinkCompatProps>(
         ref={ref}
         to={to}
         className={({ isActive, isPending }) =>
-          cn(className, isActive && activeClassName, isPending && pendingClassName)
+          cn(
+            // Base styles
+            "relative inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold transition-all duration-200 rounded-lg",
+            // Default state
+            "text-slate-400 hover:text-slate-200 hover:bg-white/5",
+            // Active state with gradient underline
+            isActive && "text-cyan-400",
+            // Custom classes
+            className,
+            isActive && activeClassName,
+            isPending && pendingClassName
+          )
         }
+        style={{
+          textDecoration: "none"
+        }}
         {...props}
       />
     );

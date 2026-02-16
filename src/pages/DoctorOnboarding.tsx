@@ -447,7 +447,7 @@ export default function DoctorOnboarding() {
             <div style={{ width:40, height:40, borderRadius:12, background:"linear-gradient(135deg,#38bdf8,#0284c7)", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 16px rgba(56,189,248,0.3)" }}>
               <Activity size={20} style={{ color:"#fff" }} />
             </div>
-            <span style={{ fontSize:18, fontWeight:800, color:"rgba(255,255,255,0.88)", letterSpacing:"-0.01em" }}>TrustHeal</span>
+            <span style={{ fontSize:18, fontWeight:800, color:"rgba(255,255,255,0.88)", letterSpacing:"-0.01em" }}>Digital Hospital</span>
           </div>
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
             {[1, 2, 3].map((s) => (

@@ -1,4 +1,4 @@
-create table doctor_profiles (
+create table if not exists doctor_profiles (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete cascade unique,
   full_name text,
@@ -22,6 +22,7 @@ create table doctor_profiles (
 
 alter table doctor_profiles enable row level security;
 
+drop policy if exists "Users can manage own doctor profile" on doctor_profiles;
 create policy "Users can manage own doctor profile"
   on doctor_profiles for all
-  using (auth.uid() = user_id);
+  using (auth.uid() = user_id)

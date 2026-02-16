@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import {
   Bot,
@@ -66,8 +65,9 @@ export function AiConsultation({ healthContext }: AiConsultationProps) {
   };
 
   const buildConversationHistory = (currentUserMsg: string) => {
+    // Convert existing chat messages to Groq format (skip the first welcome message)
     const history = chatMessages
-      .slice(1)
+      .slice(1) // Skip the language selection welcome
       .map((msg) => ({
         role: msg.role as "user" | "assistant",
         content: msg.content,
@@ -79,127 +79,159 @@ export function AiConsultation({ healthContext }: AiConsultationProps) {
 
   const callGroqApi = async (userQuery: string): Promise<string> => {
     try {
-      const isEnglish = languagePreference === "english";
+      const apiKey = import.meta.env.VITE_GROQ_API_KEY;
 
-      const patientProfile = healthContext
+      console.log("=== GROQ API DEBUG START ===");
+      console.log("1. API Key exists:", !!apiKey);
+      console.log("2. User Query:", userQuery);
+
+      if (!apiKey) {
+        console.error("❌ Groq API Key missing!");
+        return (
+          "⚠️ **Setup Required**\n\n" +
+          "Groq API key configure nahi hai. Please:\n\n" +
+          "1. [Groq Console](https://console.groq.com/keys) pe jaaein\n" +
+          "2. Free API key generate karein\n" +
+          "3. `.env` file mein add karein: `VITE_GROQ_API_KEY=your_key`\n" +
+          "4. Dev server restart karein: `npm run dev`"
+        );
+      }
+
+      // Build contextual health profile string
+      const healthProfile = healthContext
         ? [
-            healthContext.age ? `- Age: ${healthContext.age} years` : null,
+            healthContext.age ? `Age: ${healthContext.age}` : null,
             healthContext.recentSymptoms?.length
-              ? `- Recent symptoms: ${healthContext.recentSymptoms.map((s) => s.symptoms).join(", ")}`
+              ? `Recent symptoms: ${healthContext.recentSymptoms.map((s) => s.symptoms).join(", ")}`
               : null,
             healthContext.sleepScore != null
-              ? `- Sleep score: ${healthContext.sleepScore}/100`
+              ? `Sleep score: ${healthContext.sleepScore}/100`
               : null,
             healthContext.healthRiskScore != null
-              ? `- Health risk score: ${healthContext.healthRiskScore}/100`
+              ? `Health risk score: ${healthContext.healthRiskScore}/100`
               : null,
             healthContext.pastDiagnoses?.length
-              ? `- Past diagnoses: ${healthContext.pastDiagnoses.join(", ")}`
+              ? `Past diagnoses: ${healthContext.pastDiagnoses.join(", ")}`
               : null,
             healthContext.allergies?.length
-              ? `- Known allergies: ${healthContext.allergies.join(", ")}`
+              ? `Known allergies: ${healthContext.allergies.join(", ")}`
               : null,
           ]
             .filter(Boolean)
             .join("\n")
-        : "- No profile data available";
+        : null;
+
+      const isEnglish = languagePreference === "english";
+
+      // ✅ IMPROVED SYSTEM PROMPT — structured, empathetic, clinically-informed
+      const systemPrompt = `You are Dr. Aria, a warm, knowledgeable, and highly empathetic AI health assistant built into a personal health app. You have the knowledge of a general physician with expertise in preventive care, nutrition, mental wellness, and lifestyle medicine.
+
+LANGUAGE: Respond ONLY in ${isEnglish ? "clear, friendly English" : "Hinglish — a natural mix of Hindi and English, like a desi doctor speaking to a patient. Use Roman script for Hindi words (not Devanagari). Mix both languages naturally, e.g., 'Aapko thoda rest lena chahiye and keep yourself hydrated.'"}
+
+${healthProfile ? `PATIENT PROFILE (use this context to personalize your response):\n${healthProfile}\n` : ""}
+
+RESPONSE STYLE:
+- Be warm, reassuring, and human — like a trusted family doctor
+- Keep responses focused and practical (aim for 80–150 words)
+- Use **bold** for key terms, medications, or action items
+- Use numbered lists for step-by-step guidance, bullet points for options
+- Acknowledge the user's concern before answering ("That sounds uncomfortable..." / "Ye common hai, par dhyan dena zaroori hai...")
+- Personalize using their health profile when relevant (e.g., if they have a known allergy, factor it in)
+- For serious or emergency symptoms (chest pain, difficulty breathing, sudden severe headache, loss of consciousness), IMMEDIATELY say: "🚨 Please call **112 / 108** right now or go to the nearest emergency room."
+
+CONTENT GUIDELINES:
+- Provide clear, evidence-based health information
+- Suggest when to see a doctor vs. manage at home
+- Give 2–3 practical, actionable tips whenever possible
+- For mental health topics: be especially gentle and non-judgmental
+- Never diagnose definitively — say "this *could* be..." or "common causes include..."
+- Never prescribe specific medications or dosages
+- If unsure, say so — honesty builds trust
+
+END every response with a brief single-line disclaimer in the user's language:
+${isEnglish ? '⚠️ *For informational purposes only — not a substitute for professional medical advice.*' : '⚠️ *Sirf information ke liye — professional medical advice ki jagah nahi.*'}`;
 
       const conversationHistory = buildConversationHistory(userQuery);
-      const formattedHistory = conversationHistory
-        .slice(0, -1)
-        .map((m) => `${m.role === "user" ? "Patient" : "Dr. Aria"}: ${m.content}`)
-        .join("\n");
 
-      const systemRole = `You are Dr. Aria, a calm, empathetic, and knowledgeable AI health assistant with expertise in general medicine, preventive care, nutrition, and mental wellness. You communicate like a trusted family doctor — warm, clear, and never alarmist.`;
+      console.log(
+        "3. Sending",
+        conversationHistory.length,
+        "messages to Groq..."
+      );
 
-      const safetyRules = `SAFETY & RESPONSE RULES:
-1. NEVER diagnose definitively. Use language like "this could be..." or "common causes include..."
-2. NEVER prescribe specific medications or dosages.
-3. If symptoms suggest emergency (chest pain, difficulty breathing, sudden severe headache, loss of consciousness, stroke signs), IMMEDIATELY respond: "🚨 Please call 112 / 108 right now or go to the nearest emergency room."
-4. For mental health topics, be especially gentle and non-judgmental.
-5. Suggest seeing a real doctor for persistent, worsening, or unclear symptoms.
-6. Factor in the patient's known allergies when mentioning any remedies or foods.
-7. Be honest if unsure — say so clearly.`;
-
-      const responseFormat = `RESPONSE FORMAT:
-- Length: 80–150 words maximum
-- Use **bold** for key terms and action items
-- Use numbered lists for steps, bullet points for options
-- Acknowledge the concern briefly before answering
-- End with 2–3 practical, actionable tips
-- Close with this exact disclaimer on a new line: ${
-        isEnglish
-          ? "⚠️ *For informational purposes only — not a substitute for professional medical advice.*"
-          : "⚠️ *Sirf information ke liye — professional medical advice ki jagah nahi.*"
-      }`;
-
-      const languageInstruction = isEnglish
-        ? "Respond in clear, friendly English."
-        : "Respond in Hinglish — a natural mix of Hindi and English using Roman script only (no Devanagari). Example: 'Aapko thoda rest lena chahiye and stay hydrated.'";
-
-      const fullPrompt = `${systemRole}
-
-LANGUAGE: ${languageInstruction}
-
-PATIENT PROFILE:
-${patientProfile}
-
-${safetyRules}
-
-${responseFormat}
-
-${formattedHistory ? `CONVERSATION HISTORY:\n${formattedHistory}\n` : ""}
-Patient: ${userQuery}
-Dr. Aria:`;
-
-      const response = await fetch("http://localhost:11434/api/generate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "llama3",
-          prompt: fullPrompt,
-          stream: false,
-          options: {
-            temperature: 0.65,
-            top_p: 0.9,
-            num_predict: 512,
-            stop: ["Patient:", "User:"],
+      const response = await fetch(
+        "https://api.groq.com/openai/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
           },
-        }),
-      });
+          body: JSON.stringify({
+            model: "llama-3.3-70b-versatile", // Best free Groq model for reasoning
+            messages: [
+              { role: "system", content: systemPrompt },
+              ...conversationHistory,
+            ],
+            temperature: 0.65,       // Slightly lower = more consistent, factual
+            max_tokens: 512,
+            top_p: 0.9,
+            stream: false,
+          }),
+        }
+      );
+
+      console.log("4. Response status:", response.status);
 
       if (!response.ok) {
-        const status = response.status;
-        if (status === 404) {
-          return isEnglish
-            ? "⚠️ **Model Not Found**\n\nThe llama3 model isn't loaded in Ollama.\n\n**Fix:** Run `ollama pull llama3` in your terminal, then try again."
-            : "⚠️ **Model nahi mila**\n\nllama3 model Ollama mein load nahi hai.\n\n**Fix:** Terminal mein `ollama pull llama3` run karein, phir retry karein.";
-        }
-        return isEnglish
-          ? `⚠️ **Server Error (${status})**\n\nOllama returned an unexpected error. Please check that Ollama is running correctly.`
-          : `⚠️ **Server Error (${status})**\n\nOllama mein kuch gadbad hai. Check karein ki Ollama sahi se chal raha hai.`;
+        const errorData = await response.json().catch(() => ({}));
+        console.error("❌ Groq API Error:", errorData);
+
+        const errorMessages: Record<number, string> = {
+          401: isEnglish
+            ? "⚠️ **Invalid API Key (401)**\n\nYour Groq API key is invalid or expired.\n\n**Fix:** Go to [console.groq.com](https://console.groq.com/keys), generate a new key, and update your `.env` file."
+            : "⚠️ **Invalid API Key (401)**\n\nGroq API key invalid ya expired hai.\n\n**Fix:** [console.groq.com](https://console.groq.com/keys) pe nayi key banaaein aur `.env` update karein.",
+          429: isEnglish
+            ? "⚠️ **Rate Limited (429)**\n\nToo many requests. Groq's free tier allows 30 req/min.\n\n**Fix:** Wait 30 seconds and try again."
+            : "⚠️ **Rate Limited (429)**\n\nBahut zyada requests ho gaye. 30 second wait karein aur retry karein.",
+          500: isEnglish
+            ? "⚠️ **Server Error (500)**\n\nGroq's servers are temporarily unavailable. Please try again in a minute."
+            : "⚠️ **Server Error (500)**\n\nGroq ka server temporarily down hai. Ek minute baad try karein.",
+        };
+
+        return (
+          errorMessages[response.status] ||
+          (isEnglish
+            ? `⚠️ **API Error (${response.status})**\n\nSomething went wrong. Please try again.`
+            : `⚠️ **API Error (${response.status})**\n\nKuch gadbad ho gayi. Please try again.`)
+        );
       }
 
       const data = await response.json();
-      const aiResponse = data?.response?.trim();
+      console.log("5. Groq response received ✅");
+
+      const aiResponse = data.choices?.[0]?.message?.content;
 
       if (!aiResponse) {
+        console.error("❌ Empty response from Groq:", data);
         return isEnglish
           ? "⚠️ I couldn't generate a response. Please rephrase your question and try again."
           : "⚠️ Response generate nahi ho paya. Please question thoda alag tarike se puchein.";
       }
 
+      console.log("6. Response length:", aiResponse.length);
+      console.log("=== GROQ API DEBUG END ===");
+
       return aiResponse;
     } catch (error: any) {
+      console.error("=== GROQ API ERROR ===", error);
+
       const isEnglish = languagePreference === "english";
 
-      if (
-        error.name === "TypeError" &&
-        (error.message.includes("fetch") || error.message.includes("Failed to fetch") || error.message.includes("ECONNREFUSED"))
-      ) {
-        return "AI server offline. Please start Ollama.";
+      if (error.name === "TypeError" && error.message.includes("fetch")) {
+        return isEnglish
+          ? "⚠️ **Network Error**\n\nCouldn't reach Groq's servers. Check your internet connection and try again."
+          : "⚠️ **Network Error**\n\nInternet connection check karein aur retry karein.";
       }
 
       return isEnglish
@@ -268,62 +300,151 @@ Dr. Aria:`;
           "Anxiety aur stress feel ho raha hai",
         ];
 
+  const glass = (accent = "rgba(255,255,255,0.06)"): React.CSSProperties => ({
+    background: "rgba(255,255,255,0.03)",
+    backdropFilter: "blur(24px)",
+    WebkitBackdropFilter: "blur(24px)",
+    border: `1px solid ${accent}`,
+    borderRadius: 22,
+    boxShadow: "0 8px 48px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06)",
+  });
+
   return (
-    <div className="flex flex-col rounded-2xl border border-border/50 bg-card shadow-lg overflow-hidden">
+    <div style={{ ...glass("rgba(56,189,248,0.13)"), display:"flex", flexDirection:"column", overflow:"hidden" }}>
+      
+      <style>{`
+        .ai-btn { transition: all .18s !important; }
+        .ai-btn:hover { transform: translateY(-1px) !important; filter: brightness(1.1) !important; }
+        .ai-msg { animation: _msgSlide .3s ease both; }
+        @keyframes _msgSlide { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+      `}</style>
+
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border/50 bg-gradient-to-r from-primary/10 to-primary/5 p-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/20">
-            <Bot className="h-5 w-5 text-primary" />
+      <div style={{
+        display:"flex",
+        alignItems:"center",
+        justifyContent:"space-between",
+        borderBottom:"1px solid rgba(255,255,255,0.06)",
+        background:"rgba(56,189,248,0.05)",
+        padding:"18px 20px"
+      }}>
+        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <div style={{
+            width:42,
+            height:42,
+            borderRadius:"50%",
+            background:"linear-gradient(135deg,rgba(56,189,248,0.2),rgba(99,102,241,0.15))",
+            border:"1px solid rgba(56,189,248,0.3)",
+            display:"flex",
+            alignItems:"center",
+            justifyContent:"center",
+            boxShadow:"0 4px 16px rgba(56,189,248,0.2)"
+          }}>
+            <Bot size={22} style={{ color:"#38bdf8" }} />
           </div>
           <div>
-            <p className="font-semibold text-foreground">AI Consultation</p>
-            <p className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Sparkles className="h-3 w-3" />
-              Powered by Ollama · Llama 3
+            <p style={{ fontSize:15, fontWeight:700, color:"rgba(255,255,255,0.88)", marginBottom:2 }}>AI Consultation</p>
+            <p style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:"rgba(255,255,255,0.32)", fontWeight:500 }}>
+              <Sparkles size={12} />
+              Powered by Groq · Llama 3.3 70B
             </p>
           </div>
         </div>
         <button
           onClick={() => setIsExpanded((e) => !e)}
-          className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="ai-btn"
+          style={{
+            width:36,
+            height:36,
+            borderRadius:"50%",
+            background:"rgba(255,255,255,0.05)",
+            border:"1px solid rgba(255,255,255,0.1)",
+            display:"flex",
+            alignItems:"center",
+            justifyContent:"center",
+            cursor:"pointer",
+            color:"rgba(255,255,255,0.5)"
+          }}
         >
-          {isExpanded ? (
-            <X className="h-5 w-5" />
-          ) : (
-            <MessageSquare className="h-5 w-5" />
-          )}
+          {isExpanded ? <X size={18} /> : <MessageSquare size={18} />}
         </button>
       </div>
 
       {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-[420px] min-h-[200px]">
+      <div style={{
+        flex:1,
+        overflowY:"auto",
+        padding:"20px",
+        display:"flex",
+        flexDirection:"column",
+        gap:16,
+        maxHeight:420,
+        minHeight:200,
+        background:"rgba(0,0,0,0.1)"
+      }}>
         {chatMessages.map((message, idx) => (
           <div
             key={idx}
-            className={`flex gap-2 ${message.role === "user" ? "flex-row-reverse" : "flex-row"}`}
+            className="ai-msg"
+            style={{
+              display:"flex",
+              gap:12,
+              flexDirection: message.role === "user" ? "row-reverse" : "row",
+              alignItems:"flex-start"
+            }}
           >
             {message.role === "assistant" && (
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 mt-1">
-                <Bot className="h-4 w-4 text-primary" />
+              <div style={{
+                width:32,
+                height:32,
+                flexShrink:0,
+                borderRadius:"50%",
+                background:"rgba(56,189,248,0.15)",
+                border:"1px solid rgba(56,189,248,0.25)",
+                display:"flex",
+                alignItems:"center",
+                justifyContent:"center",
+                marginTop:4
+              }}>
+                <Bot size={18} style={{ color:"#38bdf8" }} />
               </div>
             )}
             <div
-              className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
-                message.role === "user"
-                  ? "bg-primary text-primary-foreground rounded-tr-sm"
-                  : "bg-muted text-foreground rounded-tl-sm"
-              }`}
+              style={{
+                maxWidth:"80%",
+                borderRadius:16,
+                padding:"12px 16px",
+                fontSize:13,
+                lineHeight:1.7,
+                whiteSpace:"pre-wrap",
+                wordBreak:"break-word",
+                background: message.role === "user"
+                  ? "linear-gradient(135deg,#0ea5e9,#0284c7)"
+                  : "rgba(255,255,255,0.05)",
+                color: message.role === "user" ? "#fff" : "rgba(255,255,255,0.82)",
+                border: message.role === "user" ? "none" : "1px solid rgba(255,255,255,0.08)",
+                boxShadow: message.role === "user" ? "0 4px 16px rgba(14,165,233,0.25)" : "none",
+                borderTopRightRadius: message.role === "user" ? 4 : 16,
+                borderTopLeftRadius: message.role === "assistant" ? 4 : 16
+              }}
             >
+              {/* Render bold markdown manually */}
               {message.content.split(/(\*\*[^*]+\*\*)/).map((part, i) =>
                 part.startsWith("**") && part.endsWith("**") ? (
-                  <strong key={i}>{part.slice(2, -2)}</strong>
+                  <strong key={i} style={{ color: message.role === "user" ? "#fff" : "#38bdf8" }}>
+                    {part.slice(2, -2)}
+                  </strong>
                 ) : (
                   <span key={i}>{part}</span>
                 )
               )}
               <p
-                className={`mt-1 text-[10px] ${message.role === "user" ? "text-primary-foreground/60 text-right" : "text-muted-foreground"}`}
+                style={{
+                  marginTop:8,
+                  fontSize:10,
+                  color: message.role === "user" ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.25)",
+                  textAlign: message.role === "user" ? "right" : "left"
+                }}
               >
                 {message.timestamp.toLocaleTimeString("en-IN", {
                   hour: "2-digit",
@@ -335,14 +456,34 @@ Dr. Aria:`;
         ))}
 
         {isAiTyping && (
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15">
-              <Bot className="h-4 w-4 text-primary" />
+          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+            <div style={{
+              width:32,
+              height:32,
+              flexShrink:0,
+              borderRadius:"50%",
+              background:"rgba(56,189,248,0.15)",
+              border:"1px solid rgba(56,189,248,0.25)",
+              display:"flex",
+              alignItems:"center",
+              justifyContent:"center"
+            }}>
+              <Bot size={18} style={{ color:"#38bdf8" }} />
             </div>
-            <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-sm bg-muted px-4 py-3">
-              <span className="h-2 w-2 rounded-full bg-primary/50 animate-bounce [animation-delay:0ms]" />
-              <span className="h-2 w-2 rounded-full bg-primary/50 animate-bounce [animation-delay:150ms]" />
-              <span className="h-2 w-2 rounded-full bg-primary/50 animate-bounce [animation-delay:300ms]" />
+            <div style={{
+              display:"flex",
+              alignItems:"center",
+              gap:6,
+              borderRadius:16,
+              borderTopLeftRadius:4,
+              background:"rgba(255,255,255,0.05)",
+              border:"1px solid rgba(255,255,255,0.08)",
+              padding:"12px 20px"
+            }}>
+              <span style={{ width:8, height:8, borderRadius:"50%", background:"rgba(56,189,248,0.5)", animation:"_bounce .6s ease-in-out infinite" }} />
+              <span style={{ width:8, height:8, borderRadius:"50%", background:"rgba(56,189,248,0.5)", animation:"_bounce .6s ease-in-out .15s infinite" }} />
+              <span style={{ width:8, height:8, borderRadius:"50%", background:"rgba(56,189,248,0.5)", animation:"_bounce .6s ease-in-out .3s infinite" }} />
+              <style>{`@keyframes _bounce{0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)}}`}</style>
             </div>
           </div>
         )}
@@ -351,44 +492,67 @@ Dr. Aria:`;
 
       {/* Language Selection */}
       {!languagePreference ? (
-        <div className="border-t border-border/50 p-4">
-          <p className="mb-3 text-sm font-medium text-muted-foreground">
+        <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", padding:"20px" }}>
+          <p style={{ marginBottom:14, fontSize:13, fontWeight:600, color:"rgba(255,255,255,0.55)" }}>
             Choose your language:
           </p>
-          <div className="grid grid-cols-2 gap-3">
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
             <button
               onClick={() => handleLanguageSelect("english")}
-              className="rounded-xl border-2 border-primary/30 bg-gradient-to-br from-blue-50 to-blue-100 p-4 text-left transition-all hover:border-primary hover:shadow-lg"
+              className="ai-btn"
+              style={{
+                borderRadius:14,
+                border:"2px solid rgba(56,189,248,0.3)",
+                background:"linear-gradient(135deg,rgba(56,189,248,0.08),rgba(99,102,241,0.05))",
+                padding:"18px 16px",
+                textAlign:"left",
+                cursor:"pointer"
+              }}
             >
-              <div className="mb-1 text-2xl">🇬🇧</div>
-              <div className="font-semibold text-sm">English</div>
-              <div className="text-xs text-muted-foreground">
-                Responses in English
-              </div>
+              <div style={{ fontSize:28, marginBottom:8 }}>🇬🇧</div>
+              <div style={{ fontSize:14, fontWeight:700, color:"rgba(255,255,255,0.88)", marginBottom:4 }}>English</div>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.35)" }}>Responses in English</div>
             </button>
             <button
               onClick={() => handleLanguageSelect("hinglish")}
-              className="rounded-xl border-2 border-primary/30 bg-gradient-to-br from-orange-50 to-orange-100 p-4 text-left transition-all hover:border-primary hover:shadow-lg"
+              className="ai-btn"
+              style={{
+                borderRadius:14,
+                border:"2px solid rgba(251,146,60,0.3)",
+                background:"linear-gradient(135deg,rgba(251,146,60,0.08),rgba(234,88,12,0.05))",
+                padding:"18px 16px",
+                textAlign:"left",
+                cursor:"pointer"
+              }}
             >
-              <div className="mb-1 text-2xl">🇮🇳</div>
-              <div className="font-semibold text-sm">Hinglish</div>
-              <div className="text-xs text-muted-foreground">
-                Hindi-English mix
-              </div>
+              <div style={{ fontSize:28, marginBottom:8 }}>🇮🇳</div>
+              <div style={{ fontSize:14, fontWeight:700, color:"rgba(255,255,255,0.88)", marginBottom:4 }}>Hinglish</div>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.35)" }}>Hindi-English mix</div>
             </button>
           </div>
         </div>
       ) : chatMessages.length === 1 && !isAiTyping ? (
-        <div className="border-t border-border/50 p-4">
-          <p className="mb-2 text-xs font-medium text-muted-foreground">
+        <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", padding:"20px" }}>
+          <p style={{ marginBottom:10, fontSize:11, fontWeight:600, color:"rgba(255,255,255,0.45)", textTransform:"uppercase", letterSpacing:"0.05em" }}>
             Quick questions:
           </p>
-          <div className="grid grid-cols-2 gap-2">
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
             {quickQuestions.map((question, idx) => (
               <button
                 key={idx}
                 onClick={() => setUserMessage(question)}
-                className="rounded-xl border border-border/50 bg-background p-2.5 text-left text-xs transition-colors hover:border-primary/50 hover:bg-primary/5"
+                className="ai-btn"
+                style={{
+                  borderRadius:12,
+                  border:"1px solid rgba(255,255,255,0.08)",
+                  background:"rgba(255,255,255,0.03)",
+                  padding:"12px 14px",
+                  textAlign:"left",
+                  fontSize:12,
+                  color:"rgba(255,255,255,0.65)",
+                  cursor:"pointer",
+                  fontWeight:500
+                }}
               >
                 {question}
               </button>
@@ -398,8 +562,8 @@ Dr. Aria:`;
       ) : null}
 
       {/* Input Area */}
-      <div className="border-t border-border/50 p-4">
-        <div className="flex gap-2">
+      <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", padding:"20px" }}>
+        <div style={{ display:"flex", gap:12, marginBottom:12 }}>
           <Textarea
             value={userMessage}
             onChange={(e) => setUserMessage(e.target.value)}
@@ -411,30 +575,67 @@ Dr. Aria:`;
                   ? "Describe your symptoms or ask a health question..."
                   : "Apne symptoms describe karein ya health question puchein..."
             }
-            className="input-medical min-h-[60px] resize-none"
             rows={2}
             disabled={isAiTyping || !languagePreference}
+            style={{
+              flex:1,
+              minHeight:60,
+              resize:"none",
+              background:"rgba(255,255,255,0.04)",
+              border:"1px solid rgba(255,255,255,0.1)",
+              borderRadius:12,
+              padding:"12px 14px",
+              fontSize:13,
+              color:"#e2e8f0",
+              outline:"none",
+              transition:"border-color .2s"
+            }}
           />
-          <Button
+          <button
             onClick={handleSendMessage}
-            disabled={
-              !userMessage.trim() || isAiTyping || !languagePreference
-            }
-            className="h-auto bg-gradient-primary text-white"
+            disabled={!userMessage.trim() || isAiTyping || !languagePreference}
+            className="ai-btn"
+            style={{
+              width:54,
+              height:"auto",
+              borderRadius:12,
+              background:!userMessage.trim() || isAiTyping || !languagePreference
+                ? "rgba(56,189,248,0.15)"
+                : "linear-gradient(135deg,#0ea5e9,#0284c7)",
+              border:"none",
+              display:"flex",
+              alignItems:"center",
+              justifyContent:"center",
+              cursor:!userMessage.trim() || isAiTyping || !languagePreference ? "not-allowed" : "pointer",
+              color:"#fff",
+              boxShadow:!userMessage.trim() || isAiTyping || !languagePreference
+                ? "none"
+                : "0 4px 16px rgba(14,165,233,0.3)",
+              opacity:!userMessage.trim() || isAiTyping || !languagePreference ? 0.4 : 1
+            }}
           >
             {isAiTyping ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 size={20} style={{ animation:"_spin .8s linear infinite" }} />
             ) : (
-              <Send className="h-5 w-5" />
+              <Send size={20} />
             )}
-          </Button>
+          </button>
         </div>
-        <div className="mt-2 flex items-start gap-2 rounded-lg bg-warning/5 p-2">
-          <AlertTriangle className="h-4 w-4 shrink-0 text-warning" />
-          <p className="text-xs text-muted-foreground">
-            AI assistant for information only. Not a substitute for professional
-            medical advice. Emergency? Call{" "}
-            <strong className="text-foreground">112 / 108</strong>.
+        
+        {/* Disclaimer */}
+        <div style={{
+          display:"flex",
+          alignItems:"flex-start",
+          gap:10,
+          borderRadius:12,
+          background:"rgba(251,191,36,0.05)",
+          border:"1px solid rgba(251,191,36,0.12)",
+          padding:"10px 12px"
+        }}>
+          <AlertTriangle size={14} style={{ color:"#fbbf24", flexShrink:0, marginTop:1 }} />
+          <p style={{ fontSize:11, color:"rgba(255,255,255,0.35)", lineHeight:1.6 }}>
+            AI assistant for information only. Not a substitute for professional medical advice. Emergency? Call{" "}
+            <strong style={{ color:"#f87171", fontWeight:700 }}>112 / 108</strong>.
           </p>
         </div>
       </div>
