@@ -248,66 +248,68 @@ export default function DoctorOnboarding() {
     }
   };
 
+  const glass = (accent = "rgba(255,255,255,0.06)"): React.CSSProperties => ({
+    background: "rgba(255,255,255,0.03)",
+    backdropFilter: "blur(24px)",
+    WebkitBackdropFilter: "blur(24px)",
+    border: `1px solid ${accent}`,
+    borderRadius: 22,
+    boxShadow: "0 8px 48px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06)",
+  });
+
   // ── Step 1: Personal Info ──────────────────────────────────────────────────
   const renderStep1 = () => (
-    <div className="space-y-6">
-      <div className="mb-8 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-primary">
-          <Stethoscope className="h-8 w-8 text-white" />
+    <div style={{ display:"flex", flexDirection:"column", gap:24 }}>
+      <div style={{ textAlign:"center", marginBottom:12 }}>
+        <div style={{ width:72, height:72, margin:"0 auto 20px", borderRadius:20, background:"linear-gradient(135deg,rgba(56,189,248,0.2),rgba(99,102,241,0.15))", border:"1px solid rgba(56,189,248,0.25)", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 8px 32px rgba(56,189,248,0.2)" }}>
+          <Stethoscope size={32} style={{ color:"#38bdf8" }} />
         </div>
-        <h2 className="text-2xl font-bold text-foreground">Personal Information</h2>
-        <p className="text-muted-foreground">Basic details about you</p>
+        <h2 style={{ fontSize:28, fontWeight:800, color:"rgba(255,255,255,0.92)", marginBottom:8, letterSpacing:"-0.02em" }}>Personal Information</h2>
+        <p style={{ fontSize:14, color:"rgba(255,255,255,0.32)" }}>Basic details about you</p>
       </div>
 
-      <div className="space-y-4">
+      <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
         <div>
-          <Label htmlFor="fullName">Full Name *</Label>
+          <Label style={{ display:"block", marginBottom:8, fontSize:13, color:"rgba(255,255,255,0.55)", fontWeight:600 }}>Full Name *</Label>
           <Input
-            id="fullName"
             value={data.fullName}
             onChange={(e) => set("fullName", e.target.value)}
             placeholder="Dr. Full Name"
-            className="input-medical mt-1"
+            style={{ width:"100%", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:12, padding:"13px 16px", fontSize:14, color:"#e2e8f0", outline:"none" }}
           />
         </div>
 
         <div>
-          <Label htmlFor="phone">Phone Number (Optional)</Label>
+          <Label style={{ display:"block", marginBottom:8, fontSize:13, color:"rgba(255,255,255,0.55)", fontWeight:600 }}>Phone Number (Optional)</Label>
           <Input
-            id="phone"
             type="tel"
             value={data.phone}
             onChange={(e) => set("phone", e.target.value)}
             placeholder="+91 XXXXX XXXXX"
-            className="input-medical mt-1"
+            style={{ width:"100%", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:12, padding:"13px 16px", fontSize:14, color:"#e2e8f0", outline:"none" }}
           />
         </div>
 
         <div>
-          <Label className="mb-2 block">Gender *</Label>
-          <RadioGroup
-            value={data.gender}
-            onValueChange={(v) => set("gender", v)}
-            className="flex gap-6"
-          >
+          <Label style={{ display:"block", marginBottom:10, fontSize:13, color:"rgba(255,255,255,0.55)", fontWeight:600 }}>Gender *</Label>
+          <RadioGroup value={data.gender} onValueChange={(v) => set("gender", v)} style={{ display:"flex", gap:20 }}>
             {["Male", "Female", "Other"].map((g) => (
-              <div key={g} className="flex items-center space-x-2">
+              <div key={g} style={{ display:"flex", alignItems:"center", gap:8 }}>
                 <RadioGroupItem value={g.toLowerCase()} id={`gender-${g}`} />
-                <Label htmlFor={`gender-${g}`} className="cursor-pointer">{g}</Label>
+                <Label htmlFor={`gender-${g}`} style={{ fontSize:13, color:"rgba(255,255,255,0.65)", cursor:"pointer" }}>{g}</Label>
               </div>
             ))}
           </RadioGroup>
         </div>
 
         <div>
-          <Label htmlFor="bio">Brief Professional Bio (Optional)</Label>
+          <Label style={{ display:"block", marginBottom:8, fontSize:13, color:"rgba(255,255,255,0.55)", fontWeight:600 }}>Brief Professional Bio (Optional)</Label>
           <Textarea
-            id="bio"
             value={data.bio}
             onChange={(e) => set("bio", e.target.value)}
             placeholder="Tell patients about yourself and your approach to healthcare..."
-            className="input-medical mt-1"
             rows={3}
+            style={{ width:"100%", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:12, padding:"13px 16px", fontSize:14, color:"#e2e8f0", outline:"none", resize:"vertical" }}
           />
         </div>
       </div>
@@ -316,29 +318,36 @@ export default function DoctorOnboarding() {
 
   // ── Step 2: Qualifications ─────────────────────────────────────────────────
   const renderStep2 = () => (
-    <div className="space-y-6">
-      <div className="mb-8 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-primary">
-          <GraduationCap className="h-8 w-8 text-white" />
+    <div style={{ display:"flex", flexDirection:"column", gap:24 }}>
+      <div style={{ textAlign:"center", marginBottom:12 }}>
+        <div style={{ width:72, height:72, margin:"0 auto 20px", borderRadius:20, background:"linear-gradient(135deg,rgba(251,191,36,0.2),rgba(245,158,11,0.15))", border:"1px solid rgba(251,191,36,0.25)", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 8px 32px rgba(251,191,36,0.2)" }}>
+          <GraduationCap size={32} style={{ color:"#fbbf24" }} />
         </div>
-        <h2 className="text-2xl font-bold text-foreground">Qualifications & Degree</h2>
-        <p className="text-muted-foreground">Your medical education details</p>
+        <h2 style={{ fontSize:28, fontWeight:800, color:"rgba(255,255,255,0.92)", marginBottom:8, letterSpacing:"-0.02em" }}>Qualifications & Degree</h2>
+        <p style={{ fontSize:14, color:"rgba(255,255,255,0.32)" }}>Your medical education details</p>
       </div>
 
-      <div className="space-y-5">
+      <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
         {/* Degree Selection */}
         <div>
-          <Label className="mb-3 block">Medical Degree *</Label>
-          <div className="grid grid-cols-3 gap-2 md:grid-cols-4">
+          <Label style={{ display:"block", marginBottom:12, fontSize:13, color:"rgba(255,255,255,0.55)", fontWeight:600 }}>Medical Degree *</Label>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 }}>
             {DEGREE_OPTIONS.map((deg) => (
               <div
                 key={deg}
                 onClick={() => set("degreeType", deg)}
-                className={`cursor-pointer rounded-xl border-2 px-3 py-2 text-center text-sm font-medium transition-all ${
-                  data.degreeType === deg
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border hover:border-primary/50"
-                }`}
+                style={{
+                  cursor:"pointer",
+                  borderRadius:12,
+                  border:`2px solid ${data.degreeType === deg ? "rgba(56,189,248,0.4)" : "rgba(255,255,255,0.08)"}`,
+                  background:data.degreeType === deg ? "rgba(56,189,248,0.1)" : "rgba(255,255,255,0.03)",
+                  padding:"12px 10px",
+                  textAlign:"center",
+                  fontSize:13,
+                  fontWeight:700,
+                  color:data.degreeType === deg ? "#38bdf8" : "rgba(255,255,255,0.55)",
+                  transition:"all .2s"
+                }}
               >
                 {deg}
               </div>
@@ -346,63 +355,68 @@ export default function DoctorOnboarding() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
           <div>
-            <Label htmlFor="institute">Institute / University *</Label>
+            <Label style={{ display:"block", marginBottom:8, fontSize:13, color:"rgba(255,255,255,0.55)", fontWeight:600 }}>Institute / University *</Label>
             <Input
-              id="institute"
               value={data.degreeInstitute}
               onChange={(e) => set("degreeInstitute", e.target.value)}
               placeholder="e.g. AIIMS Delhi"
-              className="input-medical mt-1"
+              style={{ width:"100%", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:12, padding:"13px 16px", fontSize:14, color:"#e2e8f0", outline:"none" }}
             />
           </div>
           <div>
-            <Label htmlFor="degreeYear">Graduation Year *</Label>
+            <Label style={{ display:"block", marginBottom:8, fontSize:13, color:"rgba(255,255,255,0.55)", fontWeight:600 }}>Graduation Year *</Label>
             <Input
-              id="degreeYear"
               type="number"
               value={data.degreeYear}
               onChange={(e) => set("degreeYear", e.target.value)}
               placeholder="e.g. 2015"
               min="1950"
               max={new Date().getFullYear()}
-              className="input-medical mt-1"
+              style={{ width:"100%", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:12, padding:"13px 16px", fontSize:14, color:"#e2e8f0", outline:"none" }}
             />
           </div>
         </div>
 
         {/* Degree Certificate Upload */}
         <div>
-          <Label className="mb-2 block">
+          <Label style={{ display:"block", marginBottom:10, fontSize:13, color:"rgba(255,255,255,0.55)", fontWeight:600 }}>
             Degree Certificate{" "}
-            <span className="text-xs text-muted-foreground">(PDF / JPG / PNG — max 5MB, optional)</span>
+            <span style={{ fontSize:11, color:"rgba(255,255,255,0.28)" }}>(PDF / JPG / PNG — max 5MB, optional)</span>
           </Label>
           <div
             onClick={() => degreeInputRef.current?.click()}
-            className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-8 transition-all ${
-              degreeFile
-                ? "border-primary bg-primary/5"
-                : "border-border hover:border-primary/50 hover:bg-muted/30"
-            }`}
+            style={{
+              display:"flex",
+              flexDirection:"column",
+              alignItems:"center",
+              justifyContent:"center",
+              cursor:"pointer",
+              borderRadius:14,
+              border:`2px dashed ${degreeFile ? "rgba(56,189,248,0.3)" : "rgba(255,255,255,0.12)"}`,
+              background:degreeFile ? "rgba(56,189,248,0.05)" : "rgba(255,255,255,0.02)",
+              padding:"32px 24px",
+              transition:"all .2s"
+            }}
           >
             {degreeFile ? (
-              <div className="flex items-center gap-3">
-                <FileText className="h-6 w-6 text-primary" />
-                <span className="text-sm font-medium text-foreground">{degreeFile.name}</span>
+              <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                <FileText size={24} style={{ color:"#38bdf8" }} />
+                <span style={{ fontSize:14, fontWeight:600, color:"rgba(255,255,255,0.82)" }}>{degreeFile.name}</span>
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); setDegreeFile(null); }}
-                  className="text-muted-foreground hover:text-destructive"
+                  style={{ background:"rgba(248,113,113,0.1)", border:"1px solid rgba(248,113,113,0.2)", borderRadius:8, padding:6, color:"#f87171", cursor:"pointer" }}
                 >
-                  <X className="h-4 w-4" />
+                  <X size={14} />
                 </button>
               </div>
             ) : (
               <>
-                <Upload className="mb-2 h-8 w-8 text-muted-foreground" />
-                <p className="text-sm font-medium text-foreground">Click to upload</p>
-                <p className="text-xs text-muted-foreground">PDF, JPG, or PNG up to 5MB</p>
+                <Upload size={32} style={{ color:"rgba(255,255,255,0.15)", marginBottom:12 }} />
+                <p style={{ fontSize:14, fontWeight:600, color:"rgba(255,255,255,0.55)", marginBottom:4 }}>Click to upload</p>
+                <p style={{ fontSize:12, color:"rgba(255,255,255,0.25)" }}>PDF, JPG, or PNG up to 5MB</p>
               </>
             )}
           </div>
@@ -410,7 +424,7 @@ export default function DoctorOnboarding() {
             ref={degreeInputRef}
             type="file"
             accept=".pdf,.jpg,.jpeg,.png"
-            className="hidden"
+            style={{ display:"none" }}
             onChange={handleFileChange}
           />
         </div>
@@ -420,29 +434,36 @@ export default function DoctorOnboarding() {
 
   // ── Step 3: Practice Details ───────────────────────────────────────────────
   const renderStep3 = () => (
-    <div className="space-y-6">
-      <div className="mb-8 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-primary">
-          <Building2 className="h-8 w-8 text-white" />
+    <div style={{ display:"flex", flexDirection:"column", gap:24 }}>
+      <div style={{ textAlign:"center", marginBottom:12 }}>
+        <div style={{ width:72, height:72, margin:"0 auto 20px", borderRadius:20, background:"linear-gradient(135deg,rgba(52,211,153,0.2),rgba(16,185,129,0.15))", border:"1px solid rgba(52,211,153,0.25)", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 8px 32px rgba(52,211,153,0.2)" }}>
+          <Building2 size={32} style={{ color:"#34d399" }} />
         </div>
-        <h2 className="text-2xl font-bold text-foreground">Practice Details</h2>
-        <p className="text-muted-foreground">Your specialization and clinic information</p>
+        <h2 style={{ fontSize:28, fontWeight:800, color:"rgba(255,255,255,0.92)", marginBottom:8, letterSpacing:"-0.02em" }}>Practice Details</h2>
+        <p style={{ fontSize:14, color:"rgba(255,255,255,0.32)" }}>Your specialization and clinic information</p>
       </div>
 
-      <div className="space-y-5">
+      <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
         {/* Specialization */}
         <div>
-          <Label className="mb-3 block">Specialization *</Label>
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+          <Label style={{ display:"block", marginBottom:12, fontSize:13, color:"rgba(255,255,255,0.55)", fontWeight:600 }}>Specialization *</Label>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:10 }}>
             {SPECIALIZATIONS.map((spec) => (
               <div
                 key={spec}
                 onClick={() => set("specialization", spec)}
-                className={`cursor-pointer rounded-xl border-2 px-4 py-2.5 text-sm transition-all ${
-                  data.specialization === spec
-                    ? "border-primary bg-primary/10 font-medium text-primary"
-                    : "border-border hover:border-primary/50"
-                }`}
+                style={{
+                  cursor:"pointer",
+                  borderRadius:12,
+                  border:`2px solid ${data.specialization === spec ? "rgba(52,211,153,0.4)" : "rgba(255,255,255,0.08)"}`,
+                  background:data.specialization === spec ? "rgba(52,211,153,0.08)" : "rgba(255,255,255,0.03)",
+                  padding:"12px 14px",
+                  fontSize:13,
+                  fontWeight:600,
+                  color:data.specialization === spec ? "#34d399" : "rgba(255,255,255,0.55)",
+                  transition:"all .2s",
+                  textAlign:"center"
+                }}
               >
                 {spec}
               </div>
@@ -451,73 +472,66 @@ export default function DoctorOnboarding() {
         </div>
 
         <div>
-          <Label htmlFor="subSpec">Sub-specialization (Optional)</Label>
+          <Label style={{ display:"block", marginBottom:8, fontSize:13, color:"rgba(255,255,255,0.55)", fontWeight:600 }}>Sub-specialization (Optional)</Label>
           <Input
-            id="subSpec"
             value={data.subSpecialization}
             onChange={(e) => set("subSpecialization", e.target.value)}
             placeholder="e.g. Interventional Cardiology"
-            className="input-medical mt-1"
+            style={{ width:"100%", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:12, padding:"13px 16px", fontSize:14, color:"#e2e8f0", outline:"none" }}
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
           <div>
-            <Label htmlFor="exp">Experience (Years) *</Label>
+            <Label style={{ display:"block", marginBottom:8, fontSize:13, color:"rgba(255,255,255,0.55)", fontWeight:600 }}>Experience (Years) *</Label>
             <Input
-              id="exp"
               type="number"
               value={data.experienceYears}
               onChange={(e) => set("experienceYears", e.target.value)}
               placeholder="e.g. 8"
               min="0"
               max="60"
-              className="input-medical mt-1"
+              style={{ width:"100%", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:12, padding:"13px 16px", fontSize:14, color:"#e2e8f0", outline:"none" }}
             />
           </div>
           <div>
-            <Label htmlFor="fee">Consultation Fee ₹ (Optional)</Label>
+            <Label style={{ display:"block", marginBottom:8, fontSize:13, color:"rgba(255,255,255,0.55)", fontWeight:600 }}>Consultation Fee ₹ (Optional)</Label>
             <Input
-              id="fee"
               type="number"
               value={data.consultationFee}
               onChange={(e) => set("consultationFee", e.target.value)}
               placeholder="e.g. 500"
-              className="input-medical mt-1"
+              style={{ width:"100%", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:12, padding:"13px 16px", fontSize:14, color:"#e2e8f0", outline:"none" }}
             />
           </div>
         </div>
 
         <div>
-          <Label htmlFor="hospital">Hospital / Clinic Name *</Label>
+          <Label style={{ display:"block", marginBottom:8, fontSize:13, color:"rgba(255,255,255,0.55)", fontWeight:600 }}>Hospital / Clinic Name *</Label>
           <Input
-            id="hospital"
             value={data.hospitalName}
             onChange={(e) => set("hospitalName", e.target.value)}
             placeholder="e.g. Apollo Hospital / City Clinic"
-            className="input-medical mt-1"
+            style={{ width:"100%", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:12, padding:"13px 16px", fontSize:14, color:"#e2e8f0", outline:"none" }}
           />
         </div>
 
         <div>
-          <Label htmlFor="hospitalAddr">Hospital / Clinic Address (Optional)</Label>
+          <Label style={{ display:"block", marginBottom:8, fontSize:13, color:"rgba(255,255,255,0.55)", fontWeight:600 }}>Hospital / Clinic Address (Optional)</Label>
           <Textarea
-            id="hospitalAddr"
             value={data.hospitalAddress}
             onChange={(e) => set("hospitalAddress", e.target.value)}
             placeholder="Full address of your practice..."
-            className="input-medical mt-1"
             rows={2}
+            style={{ width:"100%", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:12, padding:"13px 16px", fontSize:14, color:"#e2e8f0", outline:"none", resize:"vertical" }}
           />
         </div>
 
         {/* Verification Notice */}
-        <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950">
-          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
-          <p className="text-sm text-amber-800 dark:text-amber-200">
-            <span className="font-semibold">Verification Notice:</span> Your profile will be
-            reviewed by our team within 24–48 hours. You'll receive an email once approved.
-            Until then, your account will have limited access.
+        <div style={{ display:"flex", alignItems:"flex-start", gap:12, background:"rgba(251,191,36,0.05)", border:"1px solid rgba(251,191,36,0.15)", borderRadius:14, padding:"14px 16px" }}>
+          <AlertTriangle size={18} style={{ color:"#fbbf24", flexShrink:0, marginTop:2 }} />
+          <p style={{ fontSize:12, color:"rgba(255,255,255,0.45)", lineHeight:1.65 }}>
+            <span style={{ fontWeight:700, color:"#fbbf24" }}>Verification Notice:</span> Your profile will be reviewed by our team within 24–48 hours. You'll receive an email once approved. Until then, your account will have limited access.
           </p>
         </div>
       </div>
@@ -535,74 +549,156 @@ export default function DoctorOnboarding() {
 
   // ── Layout ─────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-background">
+    <div style={{ minHeight:"100vh", color:"#e2e8f0", fontFamily:"'Sora', system-ui, sans-serif", position:"relative", overflowX:"hidden" }}>
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap');
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        @keyframes _spin  { to { transform: rotate(360deg); } }
+        @keyframes _blob1 { 0%,100%{transform:translate(0,0)scale(1)} 40%{transform:translate(50px,-40px)scale(1.1)} 70%{transform:translate(-30px,25px)scale(.94)} }
+        @keyframes _blob2 { 0%,100%{transform:translate(0,0)scale(1)} 35%{transform:translate(-40px,30px)scale(1.07)} 70%{transform:translate(25px,-20px)scale(.97)} }
+
+        .doc-blob { position:fixed; border-radius:50%; filter:blur(100px); pointer-events:none; z-index:0; will-change:transform; }
+      `}</style>
+
+      {/* Background */}
+      <div style={{ position:"fixed", inset:0, zIndex:0, background:"linear-gradient(140deg,#050d11 0%,#060f0d 50%,#07090f 100%)" }} />
+      <div className="doc-blob" style={{ width:600,height:600,top:-150,left:-150, background:"radial-gradient(ellipse,rgba(14,165,233,0.1) 0%,transparent 65%)", animation:"_blob1 18s ease-in-out infinite" }} />
+      <div className="doc-blob" style={{ width:500,height:500,bottom:-150,right:-150, background:"radial-gradient(ellipse,rgba(99,102,241,0.07) 0%,transparent 65%)", animation:"_blob2 22s ease-in-out infinite", animationDelay:"-8s" }} />
+
+      {/* Grid texture */}
+      <div style={{ position:"fixed", inset:0, zIndex:0, pointerEvents:"none",
+        backgroundImage:"linear-gradient(rgba(255,255,255,0.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.012) 1px,transparent 1px)",
+        backgroundSize:"64px 64px" }} />
+
       {/* Header */}
-      <header className="border-b border-border/50 bg-background/80 backdrop-blur-xl">
-        <div className="flex h-16 w-full items-center justify-between px-12">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary">
-              <Activity className="h-5 w-5 text-white" />
+      <header style={{ position:"relative", zIndex:1, borderBottom:"1px solid rgba(255,255,255,0.05)", background:"rgba(6,12,18,0.8)", backdropFilter:"blur(20px)" }}>
+        <div style={{ maxWidth:1200, margin:"0 auto", padding:"0 40px", height:72, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+            <div style={{ width:40, height:40, borderRadius:12, background:"linear-gradient(135deg,#38bdf8,#0284c7)", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 16px rgba(56,189,248,0.3)" }}>
+              <Activity size={20} style={{ color:"#fff" }} />
             </div>
-            <span className="text-xl font-bold text-foreground">Digital Hospital</span>
+            <span style={{ fontSize:18, fontWeight:800, color:"rgba(255,255,255,0.88)", letterSpacing:"-0.01em" }}>Digital Hospital</span>
           </div>
 
-          {/* Step progress */}
-          <div className="flex items-center gap-2">
+          {/* Progress indicator */}
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
             {[1, 2, 3].map((s) => (
               <div
                 key={s}
-                className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-all ${
-                  s === step
-                    ? "bg-primary text-primary-foreground"
+                style={{
+                  width:36,
+                  height:36,
+                  borderRadius:"50%",
+                  display:"flex",
+                  alignItems:"center",
+                  justifyContent:"center",
+                  fontSize:14,
+                  fontWeight:700,
+                  background: s === step
+                    ? "linear-gradient(135deg,#38bdf8,#0284c7)"
                     : s < step
-                    ? "bg-success text-success-foreground"
-                    : "bg-muted text-muted-foreground"
-                }`}
+                    ? "linear-gradient(135deg,#34d399,#10b981)"
+                    : "rgba(255,255,255,0.05)",
+                  color: s <= step ? "#fff" : "rgba(255,255,255,0.25)",
+                  border: s === step ? "2px solid rgba(56,189,248,0.3)" : "1px solid rgba(255,255,255,0.08)",
+                  boxShadow: s === step ? "0 4px 16px rgba(56,189,248,0.25)" : "none",
+                  transition:"all .3s"
+                }}
               >
-                {s < step ? <CheckCircle2 className="h-5 w-5" /> : s}
+                {s < step ? <CheckCircle2 size={18} /> : s}
               </div>
             ))}
           </div>
         </div>
       </header>
 
-      {/* Content */}
-      <main className="w-full px-12 py-10">
-        <div className="card-medical w-full p-10">{renderStep()}</div>
+      {/* Main Content */}
+      <main style={{ position:"relative", zIndex:1, maxWidth:900, margin:"0 auto", padding:"48px 40px 80px" }}>
+        <div style={{ ...glass(), padding:"48px 44px" }}>
+          {renderStep()}
+        </div>
 
         {/* Navigation */}
-        <div className="mt-6 flex justify-between">
-          <Button
-            variant="outline"
+        <div style={{ display:"flex", justifyContent:"space-between", marginTop:28 }}>
+          <button
             onClick={() =>
               step > 1 ? setStep((s) => s - 1) : navigate("/role-select")
             }
-            className="gap-2"
+            style={{
+              display:"flex",
+              alignItems:"center",
+              gap:10,
+              background:"rgba(255,255,255,0.05)",
+              border:"1px solid rgba(255,255,255,0.1)",
+              borderRadius:12,
+              padding:"14px 28px",
+              fontSize:14,
+              color:"rgba(255,255,255,0.75)",
+              fontWeight:600,
+              cursor:"pointer",
+              transition:"all .2s"
+            }}
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft size={16} />
             Back
-          </Button>
+          </button>
 
           {step < totalSteps ? (
-            <Button onClick={handleNext} className="gap-2 bg-gradient-primary text-white">
+            <button
+              onClick={handleNext}
+              style={{
+                display:"flex",
+                alignItems:"center",
+                gap:10,
+                background:"linear-gradient(135deg,#0ea5e9,#0284c7)",
+                border:"none",
+                borderRadius:12,
+                padding:"14px 32px",
+                fontSize:14,
+                color:"#fff",
+                fontWeight:700,
+                cursor:"pointer",
+                boxShadow:"0 6px 24px rgba(14,165,233,0.3)",
+                transition:"all .2s"
+              }}
+            >
               Next
-              <ArrowRight className="h-4 w-4" />
-            </Button>
+              <ArrowRight size={16} />
+            </button>
           ) : (
-            <Button
+            <button
               onClick={handleSubmit}
               disabled={loading}
-              className="gap-2 bg-gradient-primary text-white"
+              style={{
+                display:"flex",
+                alignItems:"center",
+                gap:10,
+                background:loading ? "rgba(52,211,153,0.3)" : "linear-gradient(135deg,#34d399,#10b981)",
+                border:"none",
+                borderRadius:12,
+                padding:"14px 32px",
+                fontSize:14,
+                color:"#fff",
+                fontWeight:700,
+                cursor:loading ? "not-allowed" : "pointer",
+                boxShadow:loading ? "none" : "0 6px 24px rgba(52,211,153,0.35)",
+                transition:"all .2s"
+              }}
             >
               {loading ? (
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <>
+                  <div style={{ width:16, height:16, borderRadius:"50%", border:"2px solid rgba(255,255,255,0.3)", borderTopColor:"#fff", animation:"_spin .6s linear infinite" }} />
+                  Submitting...
+                </>
               ) : (
                 <>
                   Submit for Verification
-                  <CheckCircle2 className="h-5 w-5" />
+                  <CheckCircle2 size={16} />
                 </>
               )}
-            </Button>
+            </button>
           )}
         </div>
       </main>
