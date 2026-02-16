@@ -6,7 +6,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
+import RoleSelect from "./pages/RoleSelect";           // ← NEW
 import Onboarding from "./pages/Onboarding";
+import DoctorOnboarding from "./pages/DoctorOnboarding"; // ← NEW
 import Dashboard from "./pages/Dashboard";
 import Emergency from "./pages/Emergency";
 import DoctorAccess from "./pages/DoctorAccess";
@@ -25,7 +27,9 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/role-select" element={<RoleSelect />} />           {/* ← NEW */}
             <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/doctor-onboarding" element={<DoctorOnboarding />} />{/* ← NEW */}
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/emergency" element={<Emergency />} />
             <Route path="/doctor-access" element={<DoctorAccess />} />

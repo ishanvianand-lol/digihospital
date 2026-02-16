@@ -7,24 +7,27 @@ import { useAuth } from "../hooks/useAuth";
 import { Activity, Mail, Lock, ArrowRight, AlertCircle } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
 import { z } from "zod";
-
 import { supabase } from "../supabase/client";
 
+// ─── Google OAuth ──────────────────────────────────────────────────────────────
+// Google login ke baad /role-select pe redirect hoga
+// RoleSelect page check karega: agar role already hai → onboarding/dashboard bhejo
 const signInWithGoogle = async () => {
   await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: window.location.origin,
+      redirectTo: `${window.location.origin}/role-select`,
     },
   });
 };
 
-
+// ─── Validation Schema ────────────────────────────────────────────────────────
 const authSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function Auth() {
   const [searchParams] = useSearchParams();
   const [isSignUp, setIsSignUp] = useState(searchParams.get("mode") === "signup");
@@ -36,12 +39,45 @@ export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // ── Smart redirect after login ──────────────────────────────────────────────
+  // User login kare toh uski role dekho aur sahi jagah bhejo
   useEffect(() => {
-    if (user) {
-      navigate("/dashboard");
-    }
+    if (!user) return;
+
+    const redirect = async () => {
+      const role = user.user_metadata?.role;
+
+      // Naya user — pehle role choose karo
+      if (!role) {
+        navigate("/role-select");
+        return;
+      }
+
+      if (role === "doctor") {
+        // Doctor ka onboarding complete hai?
+        const { data } = await supabase
+          .from("doctor_profiles")
+          .select("onboarding_completed")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        navigate(data?.onboarding_completed ? "/dashboard" : "/doctor-onboarding");
+      } else {
+        // Patient ka onboarding complete hai?
+        const { data } = await supabase
+          .from("profiles")
+          .select("onboarding_completed")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        navigate(data?.onboarding_completed ? "/dashboard" : "/onboarding");
+      }
+    };
+
+    redirect();
   }, [user, navigate]);
 
+  // ── Form Validation ────────────────────────────────────────────────────────
   const validateForm = () => {
     try {
       authSchema.parse({ email, password });
@@ -50,12 +86,9 @@ export default function Auth() {
     } catch (err) {
       if (err instanceof z.ZodError) {
         const fieldErrors: { email?: string; password?: string } = {};
-        err.errors.forEach((error) => {
-          if (error.path[0] === "email") {
-            fieldErrors.email = error.message;
-          } else if (error.path[0] === "password") {
-            fieldErrors.password = error.message;
-          }
+        err.errors.forEach((e) => {
+          if (e.path[0] === "email") fieldErrors.email = e.message;
+          else if (e.path[0] === "password") fieldErrors.password = e.message;
         });
         setErrors(fieldErrors);
       }
@@ -63,30 +96,23 @@ export default function Auth() {
     }
   };
 
+  // ── Submit ─────────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm()) return;
-
     setLoading(true);
 
     try {
       if (isSignUp) {
         const { error } = await signUp(email, password);
         if (error) {
-          if (error.message.includes("already registered")) {
-            toast({
-              variant: "destructive",
-              title: "Account exists",
-              description: "This email is already registered. Please sign in instead.",
-            });
-          } else {
-            toast({
-              variant: "destructive",
-              title: "Sign up failed",
-              description: error.message,
-            });
-          }
+          toast({
+            variant: "destructive",
+            title: error.message.includes("already registered") ? "Account exists" : "Sign up failed",
+            description: error.message.includes("already registered")
+              ? "This email is already registered. Please sign in instead."
+              : error.message,
+          });
         } else {
           toast({
             title: "Check your email",
@@ -96,35 +122,31 @@ export default function Auth() {
       } else {
         const { error } = await signIn(email, password);
         if (error) {
-          if (error.message.includes("Invalid login")) {
-            toast({
-              variant: "destructive",
-              title: "Invalid credentials",
-              description: "The email or password you entered is incorrect.",
-            });
-          } else if (error.message.includes("Email not confirmed")) {
-            toast({
-              variant: "destructive",
-              title: "Email not verified",
-              description: "Please check your email and click the confirmation link.",
-            });
-          } else {
-            toast({
-              variant: "destructive",
-              title: "Sign in failed",
-              description: error.message,
-            });
-          }
+          toast({
+            variant: "destructive",
+            title: error.message.includes("Invalid login")
+              ? "Invalid credentials"
+              : error.message.includes("Email not confirmed")
+              ? "Email not verified"
+              : "Sign in failed",
+            description: error.message.includes("Invalid login")
+              ? "The email or password you entered is incorrect."
+              : error.message.includes("Email not confirmed")
+              ? "Please check your email and click the confirmation link."
+              : error.message,
+          });
         }
+        // Redirect → useEffect handles it when `user` updates
       }
     } finally {
       setLoading(false);
     }
   };
 
+  // ── UI ─────────────────────────────────────────────────────────────────────
   return (
     <div className="flex min-h-screen">
-      {/* Left Panel - Decorative */}
+      {/* Left Panel */}
       <div className="hidden bg-gradient-hero lg:flex lg:w-1/2 lg:flex-col lg:items-center lg:justify-center lg:p-12">
         <div className="max-w-md text-center text-white">
           <div className="mb-8 flex justify-center">
@@ -140,7 +162,7 @@ export default function Auth() {
         </div>
       </div>
 
-      {/* Right Panel - Auth Form */}
+      {/* Right Panel */}
       <div className="flex w-full flex-col items-center justify-center px-6 py-12 lg:w-1/2">
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
@@ -162,7 +184,32 @@ export default function Auth() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Google — sabse upar, prominent */}
+          <Button
+            type="button"
+            onClick={signInWithGoogle}
+            className="w-full border border-border bg-white text-foreground hover:bg-muted"
+            size="lg"
+          >
+            {/* Google SVG icon */}
+            <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+            </svg>
+            Continue with Google
+          </Button>
+
+          {/* Divider */}
+          <div className="my-6 flex items-center gap-4">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-sm text-muted-foreground">or</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          {/* Email/Password Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
@@ -179,8 +226,7 @@ export default function Auth() {
               </div>
               {errors.email && (
                 <p className="flex items-center gap-1 text-sm text-destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  {errors.email}
+                  <AlertCircle className="h-4 w-4" /> {errors.email}
                 </p>
               )}
             </div>
@@ -201,8 +247,7 @@ export default function Auth() {
               </div>
               {errors.password && (
                 <p className="flex items-center gap-1 text-sm text-destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  {errors.password}
+                  <AlertCircle className="h-4 w-4" /> {errors.password}
                 </p>
               )}
             </div>
@@ -223,15 +268,6 @@ export default function Auth() {
               )}
             </Button>
           </form>
-          <Button
-            type="button"
-            onClick={signInWithGoogle}
-            className="w-full mt-4 border border-border bg-white text-foreground hover:bg-muted"
-            size="lg"
-          >
-            Continue with Google
-          </Button>
-
 
           <div className="mt-6 text-center">
             <p className="text-muted-foreground">
